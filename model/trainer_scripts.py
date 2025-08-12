@@ -437,18 +437,11 @@ def _load_importance(path: str, top_n: int | None = None) -> pd.DataFrame | None
 def analyze_and_summarize_outputs(top_n: int = 30) -> None:
     """
     Aggregate training outputs into easy-to-consume CSVs + a tiny markdown report.
-    Creates folder: study/analysis
-    Files produced:
-      - study/analysis/global_rmse.csv
-      - study/analysis/per_query_rmse.csv
-      - study/analysis/best_model_per_query.csv
-      - study/analysis/overview.csv                (global + per-query aggregates)
-      - study/analysis/top_features_*.csv          (4 files: tabular + text)
-      - study/analysis/report.md
+    Creates folder: out_dir
     """
     import datetime as _dt
 
-    out_dir = "study/analysis"
+    out_dir = "analysis"
     _ensure_dirs([out_dir])
 
     # ---------- Global RMSE ----------
@@ -575,19 +568,19 @@ def analyze_and_summarize_outputs(top_n: int = 30) -> None:
 
     lines.append("")
     lines.append("## Artifacts saved")
-    lines.append("- `study/analysis/global_rmse.csv`")
-    lines.append("- `study/analysis/per_query_rmse.csv`")
-    lines.append("- `study/analysis/best_model_per_query.csv`")
-    lines.append("- `study/analysis/overview.csv`")
-    lines.append("- `study/analysis/top_features_products_features.csv`")
-    lines.append("- `study/analysis/top_features_reviews_features.csv`")
-    lines.append("- `study/analysis/top_terms_products_texts.csv`")
-    lines.append("- `study/analysis/top_terms_reviews_texts.csv`")
+    lines.append(f"- `{out_dir}/global_rmse.csv`")
+    lines.append(f"- `{out_dir}/per_query_rmse.csv`")
+    lines.append(f"- `{out_dir}/best_model_per_query.csv`")
+    lines.append(f"- `{out_dir}/overview.csv`")
+    lines.append(f"- `{out_dir}/top_features_products_features.csv`")
+    lines.append(f"- `{out_dir}/top_features_reviews_features.csv`")
+    lines.append(f"- `{out_dir}/top_terms_products_texts.csv`")
+    lines.append(f"- `{out_dir}/top_terms_reviews_texts.csv`")
 
     with open(os.path.join(out_dir, "report.md"), "w", encoding="utf-8") as f:
         f.write("\n".join(lines))
 
-    logger.success("Analysis complete. See 'study/analysis/' for outputs.")
+    logger.success(f"Analysis complete. See '{out_dir}' for outputs.")
 
 
 # ---------------------------
@@ -606,4 +599,4 @@ if __name__ == "__main__":
     # run_model4_reviews_texts_per_query()
 
     # 2) Analyze outputs
-    analyze_and_summarize_outputs(top_n=30)
+    analyze_and_summarize_outputs(top_n=300)

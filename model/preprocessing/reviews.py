@@ -1,61 +1,83 @@
-import json
 import os
+import time
+import configparser
+import re
+from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
 import numpy as np
-import re
-from datetime import datetime
+from loguru import logger
 
 from model.tools import clean_text_for_tfidf, read_json
 
+config = configparser.ConfigParser()
+config.read('config.ini')
 
-def count_words(text):
+
+def count_words(text: Any) -> int:
     return len(re.findall(r"\w+", text)) if isinstance(text, str) else 0
 
-def extract_features(data: dict, save_dir:str, output_csv: str = "reviews_features.csv", texts_output_csv: str = "reviews_texts.csv"):
+
+def _get_output_paths(save_dir: str) -> Tuple[str, str]:
+    try:
+        features_name = config.get("PREPROCESSING", "R_FEATURES_FILENAME")
+        texts_name = config.get("PREPROCESSING", "R_TEXTS_FILENAME")
+        features_path = os.path.join(save_dir, features_name)
+        texts_path = os.path.join(save_dir, texts_name)
+        logger.debug(
+            "Config resolved | save_dir='{}' | features='{}' | texts='{}'",
+            save_dir, features_path, texts_path
+        )
+        return features_path, texts_path
+    except Exception as e:
+        logger.exception("Failed to read output filenames from config.ini: {}", e)
+        raise
+
+
+def extract_features(data: Dict[str, Dict[str, List[Dict]]],
+                     save_dir: str,
+                     max_queries: Optional[int] = None) -> None:
+    start_ts = time.time()
+    logger.info("Start review feature extraction | save_dir='{}' | max_queries={}", save_dir, max_queries)
+
     os.makedirs(save_dir, exist_ok=True)
-    output_csv = os.path.join(save_dir, output_csv)
-    texts_output_csv = os.path.join(save_dir, texts_output_csv)
+    output_csv, texts_output_csv = _get_output_paths(save_dir)
 
-    records = []
-    reviews_texts = []
-    # data = {"pdf": data["pdf"]}
+    records: List[Dict[str, Any]] = []
+    reviews_texts: List[Dict[str, Any]] = []
 
-    max_queries = None
+    total_queries = 0
+    total_products = 0
+    skipped_empty = 0
 
     for i, key in enumerate(data):
-        if i == max_queries:
+        if max_queries is not None and i >= max_queries:
+            logger.warning("Reached max_queries limit: {}", max_queries)
             break
-        for position, (product_id, reviews) in enumerate(data[key].items()):
+
+        total_queries += 1
+        products_reviews = data[key]
+        if not isinstance(products_reviews, dict):
+            logger.warning("Unexpected structure for query='{}' (expected dict). Skipping.", key)
+            continue
+
+        for position, (product_id, reviews) in enumerate(products_reviews.items()):
             if not reviews:
-                # records.append({
-                #     "query": key,
-                #     "position": position + 1,
-                #     "productId": product_id,
-                #     "review_count": 0,
-                #     "average_review_rating": 0,
-                #     "median_review_rating": 0,
-                #     "positive_votes_sum": 0,
-                #     "negative_votes_sum": 0,
-                #     "avg_positive_votes": 0,
-                #     "avg_negative_votes": 0,
-                #     # "avg_review_length": 0,
-                #     # "avg_title_length": 0,
-                #     "percent_empty_reviews": 0,
-                #     "percent_reviews_with_title": 0,
-                #     "review_count_0_words": 0,
-                #     "review_count_1_50_words": 0,
-                #     "review_count_51_100_words": 0,
-                #     "review_count_101_plus_words": 0,
-                # })
+                skipped_empty += 1
                 continue
+
+            total_products += 1
 
             ratings = [r.get("rating", 0) for r in reviews]
             positives = [r.get("helpfulPositive", 0) for r in reviews]
             negatives = [r.get("helpfulNegative", 0) for r in reviews]
             titles = [r.get("title", "") for r in reviews]
             texts = [r.get("reviewText", "") for r in reviews]
-            dates = pd.to_datetime([r.get("publishedDate") for r in reviews], errors="coerce", utc=True)
+            dates = pd.to_datetime(
+                [r.get("publishedDate") for r in reviews],
+                errors="coerce",
+                utc=True
+            )
 
             word_counts = [count_words(t) for t in texts]
             title_lengths = [count_words(t) for t in titles]
@@ -71,8 +93,6 @@ def extract_features(data: dict, save_dir:str, output_csv: str = "reviews_featur
                 "negative_votes_sum": sum(negatives),
                 "avg_positive_votes": np.mean(positives),
                 "avg_negative_votes": np.mean(negatives),
-                # "avg_review_length": np.mean(word_counts),
-                # "avg_title_length": np.mean(title_lengths),
                 "percent_empty_reviews": sum(1 for w in word_counts if w == 0) / len(word_counts),
                 "percent_reviews_with_title": sum(1 for t in titles if len(t.strip()) > 0) / len(titles),
                 "review_count_0_words": sum(1 for w in word_counts if w == 0),
@@ -80,6 +100,7 @@ def extract_features(data: dict, save_dir:str, output_csv: str = "reviews_featur
                 "review_count_51_100_words": sum(1 for w in word_counts if 51 <= w <= 100),
                 "review_count_101_plus_words": sum(1 for w in word_counts if w > 101),
             })
+
             for review in reviews:
                 reviews_texts.append({
                     "query": key,
@@ -89,14 +110,49 @@ def extract_features(data: dict, save_dir:str, output_csv: str = "reviews_featur
                     "reviewText": clean_text_for_tfidf(review.get('reviewText'))
                 })
 
-    df = pd.DataFrame(records)
-    df.to_csv(output_csv, index=False)
-    df = pd.DataFrame(reviews_texts)
-    df.to_csv(texts_output_csv, index=False)
-    print(f"✅ Review features saved to {output_csv}")
-    print(f"✅ Text fields saved to {texts_output_csv}")
+    logger.info(
+        "Collected review data | queries={} | products={} | skipped_empty={}",
+        total_queries, total_products, skipped_empty
+    )
+
+    # Features DataFrame
+    df_features = pd.DataFrame(records)
+    if df_features.empty:
+        logger.warning("No review features collected. Output DataFrames are empty; nothing will be saved.")
+        return
+
+    # Text DataFrame
+    df_texts = pd.DataFrame(reviews_texts)
+
+    logger.info(
+        "DataFrames ready | features.shape={} | texts.shape={}",
+        tuple(df_features.shape), tuple(df_texts.shape)
+    )
+
+    # Save both files
+    try:
+        df_features.to_csv(output_csv, index=False)
+        logger.success("Review features saved -> {}", output_csv)
+    except Exception as e:
+        logger.exception("Failed to save review features to '{}': {}", output_csv, e)
+        raise
+
+    try:
+        df_texts.to_csv(texts_output_csv, index=False)
+        logger.success("Review text fields saved -> {}", texts_output_csv)
+    except Exception as e:
+        logger.exception("Failed to save review text fields to '{}': {}", texts_output_csv, e)
+        raise
+
+    elapsed = time.time() - start_ts
+    logger.info("Review feature extraction finished in {:.2f}s", elapsed)
+
 
 if __name__ == "__main__":
+    logger.info("Loading reviews JSON...")
     data = read_json("../../data/backup/reviews_data.json")
-    extract_features(data,
-                     save_dir="../../data/preprocessing/")
+    logger.info("JSON loaded | top-level keys={}", len(data) if hasattr(data, "__len__") else "n/a")
+    extract_features(
+        data=data,
+        save_dir="../../data/preprocessing/"
+    )

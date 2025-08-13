@@ -1,20 +1,22 @@
 import json
+import os
+
 import pandas as pd
 import numpy as np
 import re
 from datetime import datetime
 
-from model.tools import clean_text_for_tfidf
+from model.tools import clean_text_for_tfidf, read_json
 
 
 def count_words(text):
     return len(re.findall(r"\w+", text)) if isinstance(text, str) else 0
 
-def extract_review_features(json_path: str, output_csv: str = "reviews_features.csv", texts_output_csv: str = "reviews_texts.csv"):
-    with open(json_path, "r", encoding="utf-8") as f:
-        data = json.load(f)
+def extract_features(data: dict, save_dir:str, output_csv: str = "reviews_features.csv", texts_output_csv: str = "reviews_texts.csv"):
+    os.makedirs(save_dir, exist_ok=True)
+    output_csv = os.path.join(save_dir, output_csv)
+    texts_output_csv = os.path.join(save_dir, texts_output_csv)
 
-    now = pd.Timestamp.now(tz="UTC")
     records = []
     reviews_texts = []
     # data = {"pdf": data["pdf"]}
@@ -94,6 +96,7 @@ def extract_review_features(json_path: str, output_csv: str = "reviews_features.
     print(f"✅ Review features saved to {output_csv}")
     print(f"✅ Text fields saved to {texts_output_csv}")
 
-
 if __name__ == "__main__":
-    extract_review_features("../../data/reviews_data.json")
+    data = read_json("../../data/backup/reviews_data.json")
+    extract_features(data,
+                     save_dir="../../data/preprocessing/")

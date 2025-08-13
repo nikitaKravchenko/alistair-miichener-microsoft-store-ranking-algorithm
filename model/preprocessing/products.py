@@ -1,7 +1,11 @@
 import json
+import os
+from os.path import exists
+
 import pandas as pd
 import re
-from model.tools import clean_text_for_tfidf
+from model.tools import clean_text_for_tfidf, read_json
+
 
 def safe_len(field):
     return len(field) if isinstance(field, list) else 0
@@ -9,9 +13,10 @@ def safe_len(field):
 def word_count(text):
     return len(re.findall(r"\w+", text)) if isinstance(text, str) else 0
 
-def extract_features_from_file(json_path: str, output_csv: str = "products_features.csv", text_csv: str = "products_texts.csv"):
-    with open(json_path, "r", encoding="utf-8") as f:
-        data = json.load(f)
+def extract_features(data: dict, save_dir: str, output_csv: str = "products_features.csv", text_csv: str = "products_texts.csv"):
+    os.makedirs(save_dir, exist_ok=True)
+    output_csv = os.path.join(save_dir, output_csv)
+    text_csv = os.path.join(save_dir, text_csv)
 
     products = []
     text_data = []
@@ -95,4 +100,6 @@ def extract_features_from_file(json_path: str, output_csv: str = "products_featu
     print(f"✅ Text fields saved to {text_csv}")
 
 if __name__ == "__main__":
-    extract_features_from_file("../../data/products_data.json")
+    data = read_json("../../data/backup/products_data.json")
+    extract_features(data,
+                     save_dir="../../data/preprocessing/")

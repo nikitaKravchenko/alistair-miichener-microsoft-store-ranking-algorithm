@@ -50,18 +50,18 @@ def extract_features(data: Dict[str, Dict[str, List[Dict]]],
     total_products = 0
     skipped_empty = 0
 
-    for i, key in enumerate(data):
+    for i, query in enumerate(data):
         if max_queries is not None and i >= max_queries:
             logger.warning("Reached max_queries limit: {}", max_queries)
             break
 
         total_queries += 1
-        products_reviews = data[key]
-        if not isinstance(products_reviews, dict):
-            logger.warning("Unexpected structure for query='{}' (expected dict). Skipping.", key)
+        query_reviews = data[query]
+        if not isinstance(query_reviews, dict):
+            logger.warning("Unexpected structure for query='{}' (expected dict). Skipping.", query)
             continue
 
-        for position, (product_id, reviews) in enumerate(products_reviews.items()):
+        for position, (product_id, reviews) in enumerate(query_reviews.items()):
             if not reviews:
                 skipped_empty += 1
                 continue
@@ -83,7 +83,7 @@ def extract_features(data: Dict[str, Dict[str, List[Dict]]],
             title_lengths = [count_words(t) for t in titles]
 
             records.append({
-                "query": key,
+                "query": query,
                 "position": position + 1,
                 "productId": product_id,
                 "review_count": len(reviews),
@@ -101,14 +101,23 @@ def extract_features(data: Dict[str, Dict[str, List[Dict]]],
                 "review_count_101_plus_words": sum(1 for w in word_counts if w > 101),
             })
 
+            seen_titles = []
+            seen_texts = []
             for review in reviews:
-                reviews_texts.append({
-                    "query": key,
-                    "position": position + 1,
-                    "productId": product_id,
-                    "title": clean_text_for_tfidf(review.get('title')),
-                    "reviewText": clean_text_for_tfidf(review.get('reviewText'))
-                })
+                title = clean_text_for_tfidf(review.get('title'))
+                review_text = clean_text_for_tfidf(review.get('reviewText'))
+                if title in seen_titles and review_text in seen_texts:
+                    continue
+                else:
+                    seen_titles.append(title)
+                    seen_texts.append(review_text)
+                    reviews_texts.append({
+                        "query": query,
+                        "position": position + 1,
+                        "productId": product_id,
+                        "title": title,
+                        "reviewText": review_text
+                    })
 
     logger.info(
         "Collected review data | queries={} | products={} | skipped_empty={}",
@@ -120,6 +129,12 @@ def extract_features(data: Dict[str, Dict[str, List[Dict]]],
     if df_features.empty:
         logger.warning("No review features collected. Output DataFrames are empty; nothing will be saved.")
         return
+
+    # for col in ("review_count", "average_review_rating", "median_review_rating",
+    #             "positive_votes_sum", "negative_votes_sum", "avg_positive_votes", "avg_negative_votes",
+    #             "percent_empty_reviews", "percent_reviews_with_title",
+    #             "review_count_0_words", "review_count_1_50_words", "review_count_51_100_words", "review_count_101_plus_words"):
+    #     df_features[col] = np.log1p(df_features[col])
 
     # Text DataFrame
     df_texts = pd.DataFrame(reviews_texts)

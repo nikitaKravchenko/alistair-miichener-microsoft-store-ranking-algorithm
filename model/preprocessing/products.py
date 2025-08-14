@@ -4,6 +4,7 @@ import configparser
 import re
 from typing import Any, Dict, List, Optional, Tuple
 
+import numpy as np
 import pandas as pd
 from loguru import logger
 
@@ -48,13 +49,11 @@ def extract_features(data: Dict[str, Dict[str, Dict]],
 
     products: List[Dict[str, Any]] = []
     text_data: List[Dict[str, Any]] = []
-    now = pd.Timestamp.now(tz='UTC')
 
     total_queries = 0
     total_products = 0
     skipped_empty = 0
 
-    # Основний цикл
     for i, key in enumerate(data):
         if max_queries is not None and i >= max_queries:
             logger.warning("Reached max_queries limit: {}", max_queries)
@@ -92,7 +91,6 @@ def extract_features(data: Dict[str, Dict[str, Dict]],
                 "title_word_count": word_count(title),
                 "description_word_count": word_count(description),
                 "categoryId": product.get("categoryId", ""),
-                "subcategoryName": product.get("subcategoryName", ""),
                 "averageRating": product.get("averageRating", 0),
                 "ratingCount": product.get("ratingCount", 0),
                 "price": product.get("price", 0),
@@ -131,20 +129,28 @@ def extract_features(data: Dict[str, Dict[str, Dict]],
         total_queries, total_products, skipped_empty
     )
 
-    # Features DataFrame
     df = pd.DataFrame(products)
+
     if df.empty:
         logger.warning("No products collected. Output DataFrames are empty; nothing will be saved.")
         return
 
-    # Дати
     for col in ("releaseDateUtc", "lastUpdateDateUtc"):
-        df[col] = pd.to_datetime(df[col], errors="coerce", utc=True)
+        s = pd.to_datetime(df[col], errors="coerce", utc=True)
+        df[col] = s.dt.normalize()
 
-    df["days_since_release"] = (now - df["releaseDateUtc"]).dt.days
-    df["days_since_update"] = (now - df["lastUpdateDateUtc"]).dt.days
+    reference_date = pd.Timestamp.min.tz_localize("UTC").normalize()
 
-    # Прості агрегати по датах для діагностики
+    df["days_since_release"] = (reference_date - df["releaseDateUtc"]).dt.days
+    df["days_since_update"] = (reference_date - df["lastUpdateDateUtc"]).dt.days
+
+    # MIN MAX Normalization
+    for col in ("days_since_release", "days_since_update", "approximateSizeInBytes","maxInstallSizeInBytes",
+                "description_length", "shortDescription_length", "screenshots_count", "ratingCount",
+                "platforms_count", "permissionsRequired_count", "images_count", "features_count",
+                "description_word_count", "averageRating", "msrp",  "title_length", "title_word_count"):
+        df[col] = np.log1p(df[col])
+
     try:
         rel_min = df["releaseDateUtc"].min()
         rel_max = df["releaseDateUtc"].max()
@@ -165,7 +171,8 @@ def extract_features(data: Dict[str, Dict[str, Dict]],
         tuple(df.shape), tuple(text_df.shape)
     )
 
-    # Save both files
+    df = df.where(pd.notna(df), None)
+
     try:
         df.to_csv(output_csv, index=False)
         logger.success("Products features saved -> {}", output_csv)

@@ -57,7 +57,7 @@ async def proceed(df: pd.DataFrame, db: Persister, *, target_name: str, progress
     for index, row in df.iterrows():
         row_dict = dict(sorted(row.to_dict().items()))
         try:
-            db_item = await db.get_by_json_keys(row_dict)
+            db_item = await db.exists_by_json_keys(row_dict)
             if db_item:
                 skipped_existing += 1
                 if (index + 1) % progress_every == 0:

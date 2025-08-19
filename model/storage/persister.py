@@ -1,18 +1,16 @@
-from typing import Any, Iterable, Optional
+from datetime import datetime
+from typing import Any, Optional
 
 import tabulate
-from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession, AsyncEngine
-from sqlalchemy import select, delete as sa_delete
-from sqlalchemy.exc import IntegrityError
-
-from datetime import datetime
+from sqlalchemy import delete as sa_delete
 from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession, AsyncEngine
 from sqlalchemy.orm import InstrumentedAttribute
 from sqlalchemy.sql.schema import Column
+from sqlalchemy.sql.type_api import TypeEngine
 from sqlalchemy.types import Boolean, DateTime, Integer, Float, String
-
-from model.tools import async_timer
 
 
 def _coerce_value(col: Column, val):

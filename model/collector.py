@@ -1,20 +1,18 @@
 import asyncio
+import configparser
 import datetime
 import random
 import time
 from itertools import cycle
-from typing import Optional, Dict, Any, List, Tuple
-
-from loguru import logger
+from typing import Optional, Dict, Any, List
 
 import aiohttp
-import configparser
-
+from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, AsyncSession
 
-from model.tools import compose_aiohttp_proxy, save_json
+from model.queries_processor import list_queries
 from model.storage import Persister, Models
-from queries_processor import list_queries
+from model.tools import compose_aiohttp_proxy
 
 config = configparser.ConfigParser()
 config.read("config.ini")
@@ -148,7 +146,7 @@ async def _collect_search(session: aiohttp.ClientSession, search_queries: list[s
 
     for query in search_queries:
         qlog = logger.bind(stage="search", query=query)
-        qlog.info("Processing query...")
+        qlog.info(f"Processing query {query}...")
         queried_search_data[query] = []
         await _to_next_cursor(query)
 
@@ -223,7 +221,7 @@ async def _collect_products(session: aiohttp.ClientSession, queried_search_data:
 
     for query_key, search_data in (queried_search_data or {}).items():
         qlog = logger.bind(stage="products", query=query_key)
-        qlog.info("Processing products for query...")
+        qlog.info(f"Processing products for query {query_key}...")
         products_data[query_key] = {}
 
         if not search_data:

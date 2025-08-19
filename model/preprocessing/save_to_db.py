@@ -1,8 +1,7 @@
 import configparser
-import asyncio
+import hashlib
 import os
 import os.path
-import hashlib
 from typing import Dict, Any, List, Tuple, Optional
 
 import numpy as np
@@ -11,8 +10,8 @@ from loguru import logger
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession, AsyncEngine
 
-from model.storage import Persister, Models
-from model.tools import unique_dicts, dicts_equal, async_timer
+from model.storage import Persister
+from model.tools import async_timer
 
 config = configparser.ConfigParser()
 config.read("config.ini")
@@ -90,22 +89,7 @@ async def proceed(df: pd.DataFrame, db: Persister, *, target_name: str, progress
 
 
 @async_timer
-async def run(engine: AsyncEngine, session: async_sessionmaker[AsyncSession], save_dir: str) -> None:
-    targets = [
-        {"filename": config.get("PREPROCESSING", "P_FEATURES_FILENAME"),
-         "model": Models.ProductFeatures,
-         "name": "product_features"},
-        {"filename": config.get("PREPROCESSING", "P_TEXTS_FILENAME"),
-         "model": Models.ProductTexts,
-         "name": "product_texts"},
-        {"filename": config.get("PREPROCESSING", "R_FEATURES_FILENAME"),
-         "model": Models.ReviewFeatures,
-         "name": "review_features"},
-        {"filename": config.get("PREPROCESSING", "R_TEXTS_FILENAME"),
-         "model": Models.ReviewTexts,
-         "name": "review_texts"},
-    ]
-
+async def run(engine: AsyncEngine, session: async_sessionmaker[AsyncSession], targets: list[dict], save_dir: str) -> None:
     for target in targets:
         target_name = target["name"]
         log = logger.bind(target=target_name)

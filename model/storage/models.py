@@ -1,9 +1,6 @@
-import datetime
-from typing import Optional
-
+from sqlalchemy import Column, String, Integer
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import declarative_base
-from sqlalchemy import Column, String, Date, JSON, Integer, UniqueConstraint, DateTime, Float, Boolean, SmallInteger
 
 Base = declarative_base()
 

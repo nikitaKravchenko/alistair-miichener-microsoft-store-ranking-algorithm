@@ -17,6 +17,7 @@ from model.tools import compose_aiohttp_proxy
 config = configparser.ConfigParser()
 config.read("config.ini")
 
+MAX_REVIEWS = config.getint('SETTINGS', 'MAX_REVIEWS')
 MAX_DEPTH = config.getint('SETTINGS', 'MAX_DEPTH')
 DATE = datetime.datetime.now().date()
 
@@ -285,14 +286,17 @@ async def _collect_reviews(session: aiohttp.ClientSession, queried_search_data: 
                         next_page = json_response.get('nextPageNumber')
                         total = json_response.get('totalCount')
 
-                        reviews_data[query_key][product_id].extend(items)
-                        rlog.info(f"Collected reviews: {len(reviews_data[query_key][product_id])}/{total} "
-                                  f"(+{len(items)}) product={title!r}")
+                        collected_reviews = len(reviews_data[query_key][product_id])
 
-                        if has_more and next_page:
+                        reviews_data[query_key][product_id].extend(items)
+                        rlog.info(f"Collected reviews: {collected_reviews}/{total} "
+                                  f"(+{len(items)}) cap={MAX_REVIEWS} product={title!r}")
+
+                        cup = collected_reviews < MAX_REVIEWS or MAX_REVIEWS == -1
+                        if cup and has_more and next_page:
                             await _to_next_page(query_key, product_data, next_page)
                         else:
-                            data_cache[product_id] = list(reviews_data[query_key][product_id])
+                            data_cache[product_id] = list(reviews_data[query_key][product_id])[:MAX_REVIEWS]
                     else:
                         rlog.warning("Empty JSON body")
                 else:

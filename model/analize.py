@@ -180,7 +180,7 @@ def analyze_and_summarize_outputs(top_n: int = 30) -> None:
             except Exception as e:
                 logger.warning("Failed to read {}: {}", path, e)
 
-    global_rmse_df = pd.DataFrame(global_rows).sort_values("rmse") if global_rows else pd.DataFrame(columns=["model", "rmse"])
+    global_rmse_df = pd.DataFrame(global_rows) if global_rows else pd.DataFrame(columns=["model", "rmse"])
     _write_nonempty(global_rmse_df, f"{out_dir}/global_rmse.csv")
 
     # Model weights (for weighted stacks)

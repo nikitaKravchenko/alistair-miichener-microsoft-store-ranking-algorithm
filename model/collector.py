@@ -18,7 +18,7 @@ config = configparser.ConfigParser()
 config.read("config.ini")
 
 MAX_REVIEWS = config.getint('SETTINGS', 'MAX_REVIEWS')
-MAX_DEPTH = config.getint('SETTINGS', 'MAX_DEPTH')
+MAX_RETRIES = config.getint('SETTINGS', 'MAX_RETRIES')
 DATE = datetime.datetime.now().date()
 
 
@@ -203,14 +203,14 @@ async def _collect_products(session: aiohttp.ClientSession, queried_search_data:
                 else:
                     preview = await response.text()
                     plog.warning(f"Unexpected response ({response.status}). preview={preview[:300]!r}")
-                    if depth < MAX_DEPTH:
+                    if depth < MAX_RETRIES:
                         plog.info("Retrying...")
                         await _collect_product(query_key, product_data, depth + 1)
                     else:
                         products_data[query_key][product_id] = None
                         plog.error("Max retries reached. Stored None.")
         except asyncio.TimeoutError:
-            if depth < MAX_DEPTH:
+            if depth < MAX_RETRIES:
                 plog.warning("TimeoutError. Retrying...")
                 await _collect_product(query_key, product_data, depth + 1)
             else:
@@ -302,11 +302,11 @@ async def _collect_reviews(session: aiohttp.ClientSession, queried_search_data: 
                 else:
                     body_preview = await response.text()
                     rlog.warning(f"Unexpected response ({response.status}). preview={body_preview[:300]!r}")
-                    if depth < MAX_DEPTH:
+                    if depth < MAX_RETRIES:
                         rlog.info("Retrying...")
                         await _to_next_page(query_key, product_data, page_number, depth + 1)
         except asyncio.TimeoutError:
-            if depth < MAX_DEPTH:
+            if depth < MAX_RETRIES:
                 rlog.warning("TimeoutError. Retrying same page...")
                 await _to_next_page(query_key, product_data, page_number, depth + 1)
         except Exception as e:
@@ -383,14 +383,14 @@ async def _collect_publishers(session: aiohttp.ClientSession, queried_search_dat
                 else:
                     preview = await response.text()
                     plog.warning(f"Unexpected response ({response.status}). preview={preview[:300]!r}")
-                    if depth < MAX_DEPTH:
+                    if depth < MAX_RETRIES:
                         plog.info("Retrying...")
                         await _collect_publisher(query_key, product_data, depth + 1)
                     else:
                         publishers_data[query_key][publisher_name] = None
                         plog.error("Max retries reached. Stored None.")
         except asyncio.TimeoutError:
-            if depth < MAX_DEPTH:
+            if depth < MAX_RETRIES:
                 plog.warning("TimeoutError. Retrying...")
                 await _collect_publisher(query_key, product_data, depth + 1)
             else:

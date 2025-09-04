@@ -62,10 +62,10 @@ targets = [
 ]
 
 csv_files = [
-    "data/analysis/model1_global_top.csv",
-    "data/analysis/model2_global_top.csv",
-    "data/analysis/model3_global_top_terms.csv",
-    "data/analysis/model4_global_top_terms.csv",
+    "data/analysis/products_top_features.csv",
+    "data/analysis/reviews_top_features.csv",
+    "data/analysis/products_texts_top_terms.csv",
+    "data/analysis/reviews_texts_top_terms.csv",
     "data/analysis/all_models_global_equal_weighted.csv",
 ]
 

@@ -163,10 +163,10 @@ def analyze_and_summarize_outputs(top_n: int = 30) -> None:
 
     # ---------- Global RMSE ----------
     global_map = {
-        "model1_products_features": f"{input_dir}/study/global_products_features/summary.csv",
-        "model2_reviews_features": f"{input_dir}/study/global_reviews_features/summary.csv",
-        "model3_products_texts": f"{input_dir}/study/global_products_texts/summary.csv",
-        "model4_reviews_texts": f"{input_dir}/study/global_reviews_texts/summary.csv"
+        "products_features": f"{input_dir}/study/global_products_features/summary.csv",
+        "reviews_features": f"{input_dir}/study/global_reviews_features/summary.csv",
+        "products_texts": f"{input_dir}/study/global_products_texts/summary.csv",
+        "reviews_texts": f"{input_dir}/study/global_reviews_texts/summary.csv"
     }
 
     global_rows = []
@@ -193,10 +193,10 @@ def analyze_and_summarize_outputs(top_n: int = 30) -> None:
 
     # ---------- Per-query RMSE + overview ----------
     per_query_files = {
-        "model1_products_features": f"{input_dir}/study/query_products_features/summary.csv",
-        "model2_reviews_features": f"{input_dir}/study/query_reviews_features/summary.csv",
-        "model3_products_texts": f"{input_dir}/study/query_products_texts/summary.csv",
-        "model4_reviews_texts": f"{input_dir}/study/query_reviews_texts/summary.csv"
+        "products_features": f"{input_dir}/study/query_products_features/summary.csv",
+        "reviews_features": f"{input_dir}/study/query_reviews_features/summary.csv",
+        "products_texts": f"{input_dir}/study/query_products_texts/summary.csv",
+        "reviews_texts": f"{input_dir}/study/query_reviews_texts/summary.csv"
     }
 
     per_parts = []
@@ -251,10 +251,10 @@ def analyze_and_summarize_outputs(top_n: int = 30) -> None:
 
     # ---------- Per-model TOP files (GLOBAL) ----------
     tops_global_map = {
-        "model1_products_features": (f"{input_dir}/study/global_products_features/importance/features.csv", f"{out_dir}/model1_global_top.csv"),
-        "model2_reviews_features":  (f"{input_dir}/study/global_reviews_features/importance/features.csv",  f"{out_dir}/model2_global_top.csv"),
-        "model3_products_texts":    (f"{input_dir}/study/global_products_texts/importance/features.csv",     f"{out_dir}/model3_global_top_terms.csv"),
-        "model4_reviews_texts":     (f"{input_dir}/study/global_reviews_texts/importance/features.csv",      f"{out_dir}/model4_global_top_terms.csv"),
+        "products_features": (f"{input_dir}/study/global_products_features/importance/features.csv", f"{out_dir}/products_top_features.csv"),
+        "reviews_features":  (f"{input_dir}/study/global_reviews_features/importance/features.csv",  f"{out_dir}/reviews_top_features.csv"),
+        "products_texts":    (f"{input_dir}/study/global_products_texts/importance/features.csv",     f"{out_dir}/products_texts_top_terms.csv"),
+        "reviews_texts":     (f"{input_dir}/study/global_reviews_texts/importance/features.csv",      f"{out_dir}/reviews_texts_top_terms.csv"),
     }
 
     global_stack_parts = []
@@ -268,10 +268,10 @@ def analyze_and_summarize_outputs(top_n: int = 30) -> None:
 
     # ---------- Per-model TOP files (PER-QUERY AGGREGATED) ----------
     per_query_dirs = {
-        "model1_products_features": f"{input_dir}/study/query_products_features/importance",
-        "model2_reviews_features":  f"{input_dir}/study/query_reviews_features/importance",
-        "model3_products_texts":    f"{input_dir}/study/query_products_texts/importance",
-        "model4_reviews_texts":     f"{input_dir}/study/query_reviews_texts/importance",
+        "products_features": f"{input_dir}/study/query_products_features/importance",
+        "reviews_features":  f"{input_dir}/study/query_reviews_features/importance",
+        "products_texts":    f"{input_dir}/study/query_products_texts/importance",
+        "reviews_texts":     f"{input_dir}/study/query_reviews_texts/importance",
     }
 
     per_query_agg_parts = []
